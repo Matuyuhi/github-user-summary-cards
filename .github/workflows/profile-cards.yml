@@ -1,0 +1,45 @@
+name: Profile Summary Cards
+
+on:
+  schedule:
+    - cron: '0 18 * * *' # daily at 18:00 UTC
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/profile-cards.yml
+      - action.yml
+      - build.zig
+      - build.zig.zon
+      - src/**
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: mlugg/setup-zig@v1
+        with:
+          version: 0.14.0
+
+      - name: Build
+        run: zig build -Doptimize=ReleaseSafe
+
+      - name: Generate cards
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          THEME: default
+          UTC_OFFSET: '0'
+          OUTPUT_DIR: profile-summary-card-output
+        run: ./zig-out/bin/github-user-summary-cards "${{ github.repository_owner }}"
+
+      - name: Commit cards
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: 'chore: regenerate profile summary cards'
+          file_pattern: profile-summary-card-output/*.svg

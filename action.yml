@@ -1,0 +1,51 @@
+name: GitHub User Summary Cards
+description: Generate SVG profile summary cards from a GitHub user's stats.
+author: matuyuhi
+branding:
+  icon: bar-chart-2
+  color: blue
+inputs:
+  USERNAME:
+    description: GitHub username (defaults to the repo owner)
+    required: false
+    default: ${{ github.repository_owner }}
+  GITHUB_TOKEN:
+    description: GitHub token. When the token belongs to USERNAME, private repos and contributions are included.
+    required: false
+    default: ''
+  THEME:
+    description: Theme name (default, dracula, nord_dark, tokyonight, gruvbox, solarized_light)
+    required: false
+    default: default
+  EXCLUDE:
+    description: Comma-separated languages to exclude
+    required: false
+    default: ''
+  UTC_OFFSET:
+    description: UTC offset in hours (-12 to 14)
+    required: false
+    default: '0'
+  OUTPUT_DIR:
+    description: Directory to write SVGs into
+    required: false
+    default: profile-summary-card-output
+runs:
+  using: composite
+  steps:
+    - name: Set up Zig
+      uses: mlugg/setup-zig@v1
+      with:
+        version: 0.14.0
+    - name: Build
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: zig build -Doptimize=ReleaseSafe
+    - name: Generate cards
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.GITHUB_TOKEN }}
+        THEME: ${{ inputs.THEME }}
+        EXCLUDE: ${{ inputs.EXCLUDE }}
+        UTC_OFFSET: ${{ inputs.UTC_OFFSET }}
+        OUTPUT_DIR: ${{ github.workspace }}/${{ inputs.OUTPUT_DIR }}
+      run: ${{ github.action_path }}/zig-out/bin/github-user-summary-cards "${{ inputs.USERNAME }}"
