@@ -1,7 +1,7 @@
 name: Profile Summary Cards
 
 # Self-dogfood: generates cards for the repo owner using the action defined in
-# this repository, then commits them onto master at profile-summary-card-output/.
+# this repository, then commits them onto master at profile-summary-card/.
 # Doubles as a smoke test on every change to the action / build / sources.
 
 on:
@@ -32,6 +32,7 @@ jobs:
           THEME: tokyonight
           ALL_TIME: 'true'
           HUMANIZE: 'true'
+          OUTPUT_DIR: profile-summary-card
           # AUTO_PUSH intentionally omitted: we commit on master at a path below.
 
       - name: Commit cards to master
