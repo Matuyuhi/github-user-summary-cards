@@ -1,7 +1,7 @@
 name: Profile Summary Cards
 
 # Self-dogfood: generates cards for the repo owner using the action defined in
-# this repository, and force-pushes them to a dedicated branch via AUTO_PUSH.
+# this repository, then commits them onto master at profile-summary-card-output/.
 # Doubles as a smoke test on every change to the action / build / sources.
 
 on:
@@ -25,12 +25,36 @@ jobs:
     steps:
       - uses: actions/checkout@v5.0.1
 
-      - name: Generate and push cards
+      - name: Generate cards
         uses: ./
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           THEME: tokyonight
           ALL_TIME: 'true'
           HUMANIZE: 'true'
-          AUTO_PUSH: 'true'
-          # PUSH_BRANCH defaults to "profile-summary-card-output"
+          # AUTO_PUSH intentionally omitted: we commit on master at a path below.
+
+      - name: Commit cards to master
+        env:
+          OUTPUT_DIR: profile-summary-card
+        run: |
+          set -e
+
+          if [ ! -d "$OUTPUT_DIR" ] || [ -z "$(ls -A "$OUTPUT_DIR" 2>/dev/null)" ]; then
+            echo "no SVGs to commit"
+            exit 0
+          fi
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Force-add in case the dir is gitignored.
+          git add -fA -- "$OUTPUT_DIR"
+
+          if git diff --cached --quiet; then
+            echo "no changes to commit"
+            exit 0
+          fi
+
+          git commit -m "chore: regenerate profile summary cards"
+          git push origin HEAD:master
