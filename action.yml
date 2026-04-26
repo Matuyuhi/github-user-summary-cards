@@ -21,21 +21,69 @@ inputs:
     description: Comma-separated languages to exclude
     required: false
     default: ''
-  UTC_OFFSET:
-    description: UTC offset in hours (-12 to 14)
+  ALL_TIME:
+    description: When truthy (1/true/yes/on), aggregate commits / contributions / streak across the user's entire history (issues N+1 GraphQL queries).
     required: false
-    default: '0'
+    default: ''
+  CARDS:
+    description: "Comma-separated list of cards to render. Names: profile, repos-per-language, most-commit-language, stats, contribution-heatmap, streak, top-repos. Empty = all."
+    required: false
+    default: ''
+  TOP_LANGS:
+    description: Top N languages shown in donut cards (1..20).
+    required: false
+    default: '6'
+  TOP_REPOS:
+    description: Number of repos shown in top-repos card (1..20).
+    required: false
+    default: '6'
+  INCLUDE_FORKS:
+    description: When truthy, include forked repositories in repo / language tallies.
+    required: false
+    default: ''
+  BIO_MAX:
+    description: Max bio characters shown on profile card (8..400).
+    required: false
+    default: '56'
+  NO_AVATAR_EMBED:
+    description: When truthy, skip avatar fetch / base64 embedding (smaller SVG, but the avatar will not render when the SVG is loaded as <img src=...>).
+    required: false
+    default: ''
+  HUMANIZE:
+    description: When truthy, abbreviate large numbers (1234 -> 1.2k, 3450000 -> 3.5m).
+    required: false
+    default: ''
   OUTPUT_DIR:
     description: Directory to write SVGs into
     required: false
     default: profile-summary-card-output
+  AUTO_PUSH:
+    description: "When truthy, force-push the generated SVGs to PUSH_BRANCH. Requires the workflow to grant `permissions: contents: write` and to have run actions/checkout first."
+    required: false
+    default: ''
+  PUSH_BRANCH:
+    description: Branch to force-push the generated SVGs to (orphan branch — only the SVGs live there). Used only when AUTO_PUSH is truthy.
+    required: false
+    default: profile-summary-card-output
+  COMMIT_MESSAGE:
+    description: 'Commit message used by AUTO_PUSH. Empty falls back to "chore: update profile summary cards".'
+    required: false
+    default: ''
+  COMMIT_USER_NAME:
+    description: Git committer name used by AUTO_PUSH.
+    required: false
+    default: 'github-actions[bot]'
+  COMMIT_USER_EMAIL:
+    description: Git committer email used by AUTO_PUSH.
+    required: false
+    default: '41898282+github-actions[bot]@users.noreply.github.com'
 runs:
   using: composite
   steps:
     - name: Set up Zig
       uses: mlugg/setup-zig@v1
       with:
-        version: 0.14.0
+        version: 0.16.0
     - name: Build
       shell: bash
       working-directory: ${{ github.action_path }}
@@ -46,6 +94,66 @@ runs:
         GITHUB_TOKEN: ${{ inputs.GITHUB_TOKEN }}
         THEME: ${{ inputs.THEME }}
         EXCLUDE: ${{ inputs.EXCLUDE }}
-        UTC_OFFSET: ${{ inputs.UTC_OFFSET }}
+        ALL_TIME: ${{ inputs.ALL_TIME }}
+        CARDS: ${{ inputs.CARDS }}
+        TOP_LANGS: ${{ inputs.TOP_LANGS }}
+        TOP_REPOS: ${{ inputs.TOP_REPOS }}
+        INCLUDE_FORKS: ${{ inputs.INCLUDE_FORKS }}
+        BIO_MAX: ${{ inputs.BIO_MAX }}
+        NO_AVATAR_EMBED: ${{ inputs.NO_AVATAR_EMBED }}
+        HUMANIZE: ${{ inputs.HUMANIZE }}
         OUTPUT_DIR: ${{ github.workspace }}/${{ inputs.OUTPUT_DIR }}
       run: ${{ github.action_path }}/zig-out/bin/github-user-summary-cards "${{ inputs.USERNAME }}"
+    - name: Push cards to branch
+      shell: bash
+      env:
+        AUTO_PUSH: ${{ inputs.AUTO_PUSH }}
+        PUSH_BRANCH: ${{ inputs.PUSH_BRANCH }}
+        COMMIT_MESSAGE: ${{ inputs.COMMIT_MESSAGE }}
+        COMMIT_USER_NAME: ${{ inputs.COMMIT_USER_NAME }}
+        COMMIT_USER_EMAIL: ${{ inputs.COMMIT_USER_EMAIL }}
+        OUTPUT_DIR: ${{ github.workspace }}/${{ inputs.OUTPUT_DIR }}
+        WORKSPACE: ${{ github.workspace }}
+      run: |
+        set -e
+        case "${AUTO_PUSH:-}" in
+          1|true|yes|on|TRUE|YES|ON|True|Yes|On) ;;
+          *) echo "AUTO_PUSH not set, skipping push"; exit 0 ;;
+        esac
+
+        if [ ! -d "$OUTPUT_DIR" ] || [ -z "$(ls -A "$OUTPUT_DIR" 2>/dev/null)" ]; then
+          echo "no SVGs to push (output dir empty: $OUTPUT_DIR)"
+          exit 0
+        fi
+
+        target="${PUSH_BRANCH:-profile-summary-card-output}"
+        msg="${COMMIT_MESSAGE:-chore: update profile summary cards}"
+
+        cd "$WORKSPACE"
+
+        if ! git rev-parse --git-dir > /dev/null 2>&1; then
+          echo "::error::workspace is not a git checkout. Add 'actions/checkout' before this action."
+          exit 1
+        fi
+
+        git config user.name  "$COMMIT_USER_NAME"
+        git config user.email "$COMMIT_USER_EMAIL"
+
+        # Stash output files outside the working tree before mutating it.
+        staging=$(mktemp -d)
+        cp -a "$OUTPUT_DIR"/. "$staging/"
+
+        git checkout --orphan _gusc_push_tmp
+        git rm -rf . > /dev/null 2>&1 || true
+        cp -a "$staging"/. .
+
+        git add -A
+        if git diff --cached --quiet; then
+          echo "no changes to commit"
+          exit 0
+        fi
+
+        git commit -m "$msg"
+        git branch -M "$target"
+        git push -f origin "$target"
+        echo "pushed $(ls | wc -l | tr -d ' ') files to '$target'"

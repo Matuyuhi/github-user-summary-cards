@@ -14,13 +14,18 @@ pub const RepoSummary = struct {
     primary_color: []const u8,
 };
 
-pub const Stats = struct {
-    allocator: std.mem.Allocator,
+pub const DisplayOpts = struct {
+    top_langs: usize = 6,
+    bio_max: usize = 56,
+    humanize: bool = false,
+};
 
+pub const Stats = struct {
     name: []const u8,
     login: []const u8,
     bio: []const u8,
     avatar_url: []const u8,
+    avatar_data_url: ?[]const u8 = null,
     created_at: []const u8,
 
     followers: u32,
@@ -30,75 +35,40 @@ pub const Stats = struct {
     total_repos: u32,
     total_stars: u64,
     total_forks: u64,
-    total_commits_year: u32,
-    total_contributions_year: u32,
-    contributed_repos_year: u32,
+    total_commits: u32,
+    total_contributions: u32,
+    contributed_repos: u32,
 
     repos_per_language: []LangCount,
     commit_per_language: []LangCount,
-    contributions: []ContribDay, // chronological
-    weekday_commits: [7]u32, // Sunday..Saturday
+    contributions: []ContribDay,
     top_repos: []RepoSummary,
 
-    pub fn deinit(self: *Stats) void {
-        const a = self.allocator;
-        a.free(self.name);
-        a.free(self.login);
-        a.free(self.bio);
-        a.free(self.avatar_url);
-        a.free(self.created_at);
-        for (self.repos_per_language) |l| {
-            a.free(l.name);
-            a.free(l.color);
-        }
-        a.free(self.repos_per_language);
-        for (self.commit_per_language) |l| {
-            a.free(l.name);
-            a.free(l.color);
-        }
-        a.free(self.commit_per_language);
-        for (self.contributions) |c| a.free(c.date);
-        a.free(self.contributions);
-        for (self.top_repos) |r| {
-            a.free(r.name);
-            a.free(r.description);
-            a.free(r.primary_lang);
-            a.free(r.primary_color);
-        }
-        a.free(self.top_repos);
-    }
+    /// True when contributions span the user's full account history rather
+    /// than just the most recent year.
+    all_time: bool,
+
+    display: DisplayOpts = .{},
 };
 
-fn dupOpt(allocator: std.mem.Allocator, v: ?Value) ![]u8 {
-    if (v == null) return try allocator.dupe(u8, "");
-    return switch (v.?) {
-        .string => |s| try allocator.dupe(u8, s),
-        else => try allocator.dupe(u8, ""),
-    };
-}
-
 fn getString(obj: std.json.ObjectMap, key: []const u8) []const u8 {
-    if (obj.get(key)) |v| {
-        return switch (v) {
-            .string => |s| s,
-            else => "",
-        };
-    }
+    if (obj.get(key)) |v| return switch (v) {
+        .string => |s| s,
+        else => "",
+    };
     return "";
 }
 
 fn getU32(obj: std.json.ObjectMap, key: []const u8) u32 {
-    if (obj.get(key)) |v| {
-        return switch (v) {
-            .integer => |i| blk: {
-                if (i < 0) break :blk 0;
-                if (i > std.math.maxInt(u32)) break :blk std.math.maxInt(u32);
-                break :blk @intCast(i);
-            },
-            .float => |f| if (f < 0) 0 else @intFromFloat(@min(f, @as(f64, std.math.maxInt(u32)))),
-            else => 0,
-        };
-    }
+    if (obj.get(key)) |v| return switch (v) {
+        .integer => |i| blk: {
+            if (i < 0) break :blk 0;
+            if (i > std.math.maxInt(u32)) break :blk std.math.maxInt(u32);
+            break :blk @intCast(i);
+        },
+        .float => |f| if (f < 0) 0 else @intFromFloat(@min(f, @as(f64, std.math.maxInt(u32)))),
+        else => 0,
+    };
     return 0;
 }
 
@@ -117,14 +87,14 @@ fn addToTally(tally: *std.StringHashMap(TallyEntry), name: []const u8, color: []
     }
 }
 
-fn tallyToSorted(allocator: std.mem.Allocator, tally: *std.StringHashMap(TallyEntry)) ![]LangCount {
-    var items = try allocator.alloc(LangCount, tally.count());
+fn tallyToSorted(arena: std.mem.Allocator, tally: *std.StringHashMap(TallyEntry)) ![]LangCount {
+    var items = try arena.alloc(LangCount, tally.count());
     var idx: usize = 0;
     var it = tally.iterator();
     while (it.next()) |kv| : (idx += 1) {
         items[idx] = .{
-            .name = try allocator.dupe(u8, kv.key_ptr.*),
-            .color = try allocator.dupe(u8, kv.value_ptr.color),
+            .name = try arena.dupe(u8, kv.key_ptr.*),
+            .color = try arena.dupe(u8, kv.value_ptr.color),
             .value = kv.value_ptr.value,
         };
     }
@@ -136,117 +106,49 @@ fn langDesc(_: void, a: LangCount, b: LangCount) bool {
     return a.value > b.value;
 }
 
-pub fn fromGraphQL(
-    allocator: std.mem.Allocator,
-    root: Value,
+const ContribAcc = struct {
+    arena: std.mem.Allocator,
     exclude: []const []const u8,
-) !Stats {
-    if (root != .object) return error.BadResponse;
-    const data_v = root.object.get("data") orelse return error.BadResponse;
-    if (data_v != .object) return error.BadResponse;
-    const user_v = data_v.object.get("user") orelse return error.BadResponse;
-    if (user_v != .object) return error.BadResponse;
-    const u = user_v.object;
+    seen_dates: std.StringHashMap(void),
+    contribs: std.ArrayList(ContribDay),
+    contributed_repos: std.StringHashMap(void),
+    commit_lang_tally: std.StringHashMap(TallyEntry),
+    total_commits: u32 = 0,
+    total_contributions: u32 = 0,
 
-    const name = try allocator.dupe(u8, getString(u, "name"));
-    const login = try allocator.dupe(u8, getString(u, "login"));
-    const bio = try allocator.dupe(u8, getString(u, "bio"));
-    const avatar_url = try allocator.dupe(u8, getString(u, "avatarUrl"));
-    const created_at = try allocator.dupe(u8, getString(u, "createdAt"));
-
-    const followers = if (u.get("followers")) |v| (if (v == .object) getU32(v.object, "totalCount") else 0) else 0;
-    const following = if (u.get("following")) |v| (if (v == .object) getU32(v.object, "totalCount") else 0) else 0;
-    const total_prs = if (u.get("pullRequests")) |v| (if (v == .object) getU32(v.object, "totalCount") else 0) else 0;
-    const total_issues = if (u.get("issues")) |v| (if (v == .object) getU32(v.object, "totalCount") else 0) else 0;
-
-    // Repositories
-    var total_stars: u64 = 0;
-    var total_forks: u64 = 0;
-    var total_repos: u32 = 0;
-
-    var repo_lang_tally = std.StringHashMap(TallyEntry).init(allocator);
-    defer repo_lang_tally.deinit();
-
-    var top = std.ArrayList(RepoSummary).init(allocator);
-    defer {
-        for (top.items) |r| {
-            allocator.free(r.name);
-            allocator.free(r.description);
-            allocator.free(r.primary_lang);
-            allocator.free(r.primary_color);
-        }
-        top.deinit();
-    }
-
-    if (u.get("repositories")) |repos_v| if (repos_v == .object) {
-        total_repos = getU32(repos_v.object, "totalCount");
-        if (repos_v.object.get("nodes")) |nodes_v| if (nodes_v == .array) {
-            for (nodes_v.array.items) |r| {
-                if (r != .object) continue;
-                const ro = r.object;
-                total_stars += getU32(ro, "stargazerCount");
-                total_forks += getU32(ro, "forkCount");
-
-                var lang_name: []const u8 = "Unknown";
-                var lang_color: []const u8 = "#888888";
-                if (ro.get("primaryLanguage")) |pl| if (pl == .object) {
-                    const ln = getString(pl.object, "name");
-                    if (ln.len > 0) lang_name = ln;
-                    const lc = getString(pl.object, "color");
-                    if (lc.len > 0) lang_color = lc;
-                };
-                if (!isExcluded(lang_name, exclude)) {
-                    try addToTally(&repo_lang_tally, lang_name, lang_color, 1.0);
-                }
-
-                if (top.items.len < 6) {
-                    try top.append(.{
-                        .name = try allocator.dupe(u8, getString(ro, "name")),
-                        .description = try allocator.dupe(u8, getString(ro, "description")),
-                        .stars = getU32(ro, "stargazerCount"),
-                        .forks = getU32(ro, "forkCount"),
-                        .primary_lang = try allocator.dupe(u8, lang_name),
-                        .primary_color = try allocator.dupe(u8, lang_color),
-                    });
-                }
-            }
+    fn init(arena: std.mem.Allocator, exclude: []const []const u8) ContribAcc {
+        return .{
+            .arena = arena,
+            .exclude = exclude,
+            .seen_dates = std.StringHashMap(void).init(arena),
+            .contribs = .empty,
+            .contributed_repos = std.StringHashMap(void).init(arena),
+            .commit_lang_tally = std.StringHashMap(TallyEntry).init(arena),
         };
-    };
-
-    // Contributions
-    var total_commits_year: u32 = 0;
-    var total_contributions_year: u32 = 0;
-    var contributed_repos_year: u32 = 0;
-    var contribs = std.ArrayList(ContribDay).init(allocator);
-    defer {
-        for (contribs.items) |c| allocator.free(c.date);
-        contribs.deinit();
     }
-    var weekday_commits = [_]u32{0} ** 7;
 
-    var commit_lang_tally = std.StringHashMap(TallyEntry).init(allocator);
-    defer commit_lang_tally.deinit();
-
-    if (u.get("contributionsCollection")) |cc_v| if (cc_v == .object) {
-        const cc = cc_v.object;
-        total_commits_year = getU32(cc, "totalCommitContributions");
-        contributed_repos_year = getU32(cc, "totalRepositoriesWithContributedCommits");
-
+    fn ingest(acc: *ContribAcc, cc: std.json.ObjectMap) !void {
         if (cc.get("contributionCalendar")) |cal_v| if (cal_v == .object) {
-            total_contributions_year = getU32(cal_v.object, "totalContributions");
             if (cal_v.object.get("weeks")) |weeks_v| if (weeks_v == .array) {
                 for (weeks_v.array.items) |w| {
                     if (w != .object) continue;
                     if (w.object.get("contributionDays")) |days_v| if (days_v == .array) {
                         for (days_v.array.items) |d| {
                             if (d != .object) continue;
-                            const date = getString(d.object, "date");
+                            const date_raw = getString(d.object, "date");
+                            if (date_raw.len == 0) continue;
+                            if (acc.seen_dates.contains(date_raw)) continue;
+
+                            const date_owned = try acc.arena.dupe(u8, date_raw);
+                            try acc.seen_dates.put(date_owned, {});
+
                             const count = getU32(d.object, "contributionCount");
                             const weekday = getU32(d.object, "weekday");
                             const wd: u8 = @intCast(weekday & 0x7);
-                            weekday_commits[wd] +|= count;
-                            try contribs.append(.{
-                                .date = try allocator.dupe(u8, date),
+
+                            acc.total_contributions +|= count;
+                            try acc.contribs.append(acc.arena, .{
+                                .date = date_owned,
                                 .count = count,
                                 .weekday = wd,
                             });
@@ -260,16 +162,24 @@ pub fn fromGraphQL(
             for (arr_v.array.items) |entry| {
                 if (entry != .object) continue;
                 const eo = entry.object;
+
+                var name_with_owner: []const u8 = "";
+                var has_lang = false;
                 var lname: []const u8 = "Unknown";
                 var lcolor: []const u8 = "#888888";
                 if (eo.get("repository")) |rv| if (rv == .object) {
+                    name_with_owner = getString(rv.object, "nameWithOwner");
                     if (rv.object.get("primaryLanguage")) |pl| if (pl == .object) {
                         const ln = getString(pl.object, "name");
-                        if (ln.len > 0) lname = ln;
+                        if (ln.len > 0) {
+                            lname = ln;
+                            has_lang = true;
+                        }
                         const lc = getString(pl.object, "color");
                         if (lc.len > 0) lcolor = lc;
                     };
                 };
+
                 var commits: u32 = 0;
                 if (eo.get("contributions")) |cv| if (cv == .object) {
                     if (cv.object.get("nodes")) |nodes_v| if (nodes_v == .array) {
@@ -279,15 +189,114 @@ pub fn fromGraphQL(
                         }
                     };
                 };
+
                 if (commits == 0) continue;
-                if (isExcluded(lname, exclude)) continue;
-                try addToTally(&commit_lang_tally, lname, lcolor, @as(f64, @floatFromInt(commits)));
+
+                acc.total_commits +|= commits;
+                if (name_with_owner.len > 0 and !acc.contributed_repos.contains(name_with_owner)) {
+                    const owned = try acc.arena.dupe(u8, name_with_owner);
+                    try acc.contributed_repos.put(owned, {});
+                }
+
+                if (!has_lang) continue;
+                if (isExcluded(lname, acc.exclude)) continue;
+                try addToTally(&acc.commit_lang_tally, lname, lcolor, @as(f64, @floatFromInt(commits)));
+            }
+        };
+    }
+};
+
+fn dateLessThan(_: void, a: ContribDay, b: ContribDay) bool {
+    return std.mem.order(u8, a.date, b.date) == .lt;
+}
+
+pub fn fromGraphQL(
+    arena: std.mem.Allocator,
+    profile_root: Value,
+    extra_collections: []const Value,
+    exclude: []const []const u8,
+    all_time: bool,
+    top_repos_limit: usize,
+) !Stats {
+    if (profile_root != .object) return error.BadResponse;
+    const data_v = profile_root.object.get("data") orelse return error.BadResponse;
+    if (data_v != .object) return error.BadResponse;
+    const user_v = data_v.object.get("user") orelse return error.BadResponse;
+    if (user_v != .object) return error.BadResponse;
+    const u = user_v.object;
+
+    const name = try arena.dupe(u8, getString(u, "name"));
+    const login = try arena.dupe(u8, getString(u, "login"));
+    const bio = try arena.dupe(u8, getString(u, "bio"));
+    const avatar_url = try arena.dupe(u8, getString(u, "avatarUrl"));
+    const created_at = try arena.dupe(u8, getString(u, "createdAt"));
+
+    const followers = if (u.get("followers")) |v| (if (v == .object) getU32(v.object, "totalCount") else 0) else 0;
+    const following = if (u.get("following")) |v| (if (v == .object) getU32(v.object, "totalCount") else 0) else 0;
+    const total_prs = if (u.get("pullRequests")) |v| (if (v == .object) getU32(v.object, "totalCount") else 0) else 0;
+    const total_issues = if (u.get("issues")) |v| (if (v == .object) getU32(v.object, "totalCount") else 0) else 0;
+
+    var total_stars: u64 = 0;
+    var total_forks: u64 = 0;
+    var total_repos: u32 = 0;
+
+    var repo_lang_tally = std.StringHashMap(TallyEntry).init(arena);
+    var top: std.ArrayList(RepoSummary) = .empty;
+
+    if (u.get("repositories")) |repos_v| if (repos_v == .object) {
+        total_repos = getU32(repos_v.object, "totalCount");
+        if (repos_v.object.get("nodes")) |nodes_v| if (nodes_v == .array) {
+            for (nodes_v.array.items) |r| {
+                if (r != .object) continue;
+                const ro = r.object;
+                total_stars += getU32(ro, "stargazerCount");
+                total_forks += getU32(ro, "forkCount");
+
+                var has_lang = false;
+                var lang_name: []const u8 = "Unknown";
+                var lang_color: []const u8 = "#888888";
+                if (ro.get("primaryLanguage")) |pl| if (pl == .object) {
+                    const ln = getString(pl.object, "name");
+                    if (ln.len > 0) {
+                        lang_name = ln;
+                        has_lang = true;
+                    }
+                    const lc = getString(pl.object, "color");
+                    if (lc.len > 0) lang_color = lc;
+                };
+                if (has_lang and !isExcluded(lang_name, exclude)) {
+                    try addToTally(&repo_lang_tally, lang_name, lang_color, 1.0);
+                }
+
+                if (top.items.len < top_repos_limit) {
+                    try top.append(arena, .{
+                        .name = try arena.dupe(u8, getString(ro, "name")),
+                        .description = try arena.dupe(u8, getString(ro, "description")),
+                        .stars = getU32(ro, "stargazerCount"),
+                        .forks = getU32(ro, "forkCount"),
+                        .primary_lang = try arena.dupe(u8, lang_name),
+                        .primary_color = try arena.dupe(u8, lang_color),
+                    });
+                }
             }
         };
     };
 
-    return Stats{
-        .allocator = allocator,
+    var acc = ContribAcc.init(arena, exclude);
+
+    if (u.get("contributionsCollection")) |cc_v| if (cc_v == .object) {
+        try acc.ingest(cc_v.object);
+    };
+
+    for (extra_collections) |cc_v| {
+        if (cc_v != .object) continue;
+        try acc.ingest(cc_v.object);
+    }
+
+    const sorted_contribs = try acc.contribs.toOwnedSlice(arena);
+    std.sort.pdq(ContribDay, sorted_contribs, {}, dateLessThan);
+
+    return .{
         .name = name,
         .login = login,
         .bio = bio,
@@ -300,14 +309,39 @@ pub fn fromGraphQL(
         .total_repos = total_repos,
         .total_stars = total_stars,
         .total_forks = total_forks,
-        .total_commits_year = total_commits_year,
-        .total_contributions_year = total_contributions_year,
-        .contributed_repos_year = contributed_repos_year,
-        .repos_per_language = try tallyToSorted(allocator, &repo_lang_tally),
-        .commit_per_language = try tallyToSorted(allocator, &commit_lang_tally),
-        .contributions = try contribs.toOwnedSlice(),
-        .weekday_commits = weekday_commits,
-        .top_repos = try top.toOwnedSlice(),
+        .total_commits = acc.total_commits,
+        .total_contributions = acc.total_contributions,
+        .contributed_repos = @intCast(acc.contributed_repos.count()),
+        .repos_per_language = try tallyToSorted(arena, &repo_lang_tally),
+        .commit_per_language = try tallyToSorted(arena, &acc.commit_lang_tally),
+        .contributions = sorted_contribs,
+        .top_repos = try top.toOwnedSlice(arena),
+        .all_time = all_time,
+    };
+}
+
+/// Helper for callers that want to extract `data.user.contributionsCollection`
+/// from a response root, e.g. when iterating year-by-year via the
+/// contributions-only query.
+pub fn extractContributionsCollection(root: Value) ?Value {
+    if (root != .object) return null;
+    const data_v = root.object.get("data") orelse return null;
+    if (data_v != .object) return null;
+    const user_v = data_v.object.get("user") orelse return null;
+    if (user_v != .object) return null;
+    return user_v.object.get("contributionsCollection");
+}
+
+pub fn extractCreatedAt(root: Value) ?[]const u8 {
+    if (root != .object) return null;
+    const data_v = root.object.get("data") orelse return null;
+    if (data_v != .object) return null;
+    const user_v = data_v.object.get("user") orelse return null;
+    if (user_v != .object) return null;
+    const cv = user_v.object.get("createdAt") orelse return null;
+    return switch (cv) {
+        .string => |s| s,
+        else => null,
     };
 }
 
@@ -326,10 +360,8 @@ pub fn streakStats(contributions: []const ContribDay) struct { current: u32, lon
             run = 0;
         }
     }
-    // Walk back from end for current streak (allow today=0, count from yesterday).
     if (contributions.len > 0) {
         var i: isize = @as(isize, @intCast(contributions.len)) - 1;
-        // Skip today if zero (so missing today doesn't break streak).
         if (i >= 0 and contributions[@intCast(i)].count == 0) i -= 1;
         while (i >= 0) : (i -= 1) {
             if (contributions[@intCast(i)].count > 0) {

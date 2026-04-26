@@ -4,3 +4,5 @@ zig-out/
 profile-summary-card-output/
 *.swp
 .DS_Store
+
+.idea
