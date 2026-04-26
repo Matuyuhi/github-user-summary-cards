@@ -1,12 +1,14 @@
 name: Profile Summary Cards
 
+# Self-dogfood: generates cards for the repo owner using the action defined in
+# this repository, and force-pushes them to a dedicated branch via AUTO_PUSH.
+# Doubles as a smoke test on every change to the action / build / sources.
+
 on:
-  schedule:
-    - cron: '0 18 * * *' # daily at 18:00 UTC
   workflow_dispatch:
   push:
     branches:
-      - main
+      - master
     paths:
       - .github/workflows/profile-cards.yml
       - action.yml
@@ -18,28 +20,17 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  generate:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: mlugg/setup-zig@v1
+      - name: Generate and push cards
+        uses: ./
         with:
-          version: 0.14.0
-
-      - name: Build
-        run: zig build -Doptimize=ReleaseSafe
-
-      - name: Generate cards
-        env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          THEME: default
-          UTC_OFFSET: '0'
-          OUTPUT_DIR: profile-summary-card-output
-        run: ./zig-out/bin/github-user-summary-cards "${{ github.repository_owner }}"
-
-      - name: Commit cards
-        uses: stefanzweifel/git-auto-commit-action@v5
-        with:
-          commit_message: 'chore: regenerate profile summary cards'
-          file_pattern: profile-summary-card-output/*.svg
+          THEME: tokyonight
+          ALL_TIME: 'true'
+          HUMANIZE: 'true'
+          AUTO_PUSH: 'true'
+          # PUSH_BRANCH defaults to "profile-summary-card-output"
