@@ -23,7 +23,7 @@ jobs:
   generate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5.0.1
 
       - name: Generate and push cards
         uses: ./
