@@ -25,9 +25,17 @@ jobs:
     steps:
       - uses: actions/checkout@v5.0.1
 
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.16.0
+
+      - name: Build binary
+        run: zig build -Doptimize=ReleaseSafe
+
       - name: Generate cards
         uses: ./
         with:
+          BIN_PATH: ${{ github.workspace }}/zig-out/bin/github-user-summary-cards
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           THEME: tokyonight
           ALL_TIME: 'true'

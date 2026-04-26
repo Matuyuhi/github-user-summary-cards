@@ -77,17 +77,63 @@ inputs:
     description: Git committer email used by AUTO_PUSH.
     required: false
     default: '41898282+github-actions[bot]@users.noreply.github.com'
+  BIN_PATH:
+    description: 'Path to a prebuilt github-user-summary-cards binary. When set, the action runs it directly instead of downloading from a GitHub Release. Useful for local action references (`uses: ./`) and for pinning to a custom build.'
+    required: false
+    default: ''
 runs:
   using: composite
   steps:
-    - name: Set up Zig
-      uses: mlugg/setup-zig@v2.2.1
-      with:
-        version: 0.16.0
-    - name: Build
+    - name: Resolve binary
       shell: bash
-      working-directory: ${{ github.action_path }}
-      run: zig build -Doptimize=ReleaseSafe
+      env:
+        BIN_PATH_INPUT: ${{ inputs.BIN_PATH }}
+        ACTION_REF: ${{ github.action_ref }}
+        ACTION_REPOSITORY: ${{ github.action_repository }}
+      run: |
+        set -e
+
+        if [ -n "$BIN_PATH_INPUT" ]; then
+          if [ ! -x "$BIN_PATH_INPUT" ]; then
+            echo "::error::BIN_PATH '$BIN_PATH_INPUT' does not exist or is not executable"
+            exit 1
+          fi
+          echo "GUSC_BIN=$BIN_PATH_INPUT" >> "$GITHUB_ENV"
+          echo "using prebuilt binary at $BIN_PATH_INPUT"
+          exit 0
+        fi
+
+        if [ -z "$ACTION_REF" ]; then
+          echo "::error::action ref is empty (likely \`uses: ./\`). Provide BIN_PATH input pointing at a prebuilt binary, or use a tag like \`uses: matuyuhi/github-user-summary-cards@v1\`."
+          exit 1
+        fi
+
+        case "$ACTION_REF" in
+          v[0-9]*) ;;
+          *)
+            echo "::error::action ref '$ACTION_REF' is not a release tag. Use a tag like \`@v1\` or \`@v0.1.0\`, or provide BIN_PATH for branch / SHA references."
+            exit 1
+            ;;
+        esac
+
+        repo="${ACTION_REPOSITORY:-matuyuhi/github-user-summary-cards}"
+        os=$(uname -s | tr '[:upper:]' '[:lower:]')
+        arch=$(uname -m)
+        case "$os/$arch" in
+          linux/x86_64) asset="github-user-summary-cards-x86_64-linux" ;;
+          *)
+            echo "::error::no prebuilt binary published for $os/$arch. Build locally and pass BIN_PATH input."
+            exit 1
+            ;;
+        esac
+
+        url="https://github.com/$repo/releases/download/$ACTION_REF/$asset"
+        target="$RUNNER_TEMP/github-user-summary-cards"
+        echo "downloading $url"
+        curl -fsSL --retry 3 -o "$target" "$url"
+        chmod +x "$target"
+        echo "GUSC_BIN=$target" >> "$GITHUB_ENV"
+
     - name: Generate cards
       shell: bash
       env:
@@ -103,7 +149,7 @@ runs:
         NO_AVATAR_EMBED: ${{ inputs.NO_AVATAR_EMBED }}
         HUMANIZE: ${{ inputs.HUMANIZE }}
         OUTPUT_DIR: ${{ github.workspace }}/${{ inputs.OUTPUT_DIR }}
-      run: ${{ github.action_path }}/zig-out/bin/github-user-summary-cards "${{ inputs.USERNAME }}"
+      run: '"$GUSC_BIN" "${{ inputs.USERNAME }}"'
     - name: Push cards to branch
       shell: bash
       env:
