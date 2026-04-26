@@ -1,7 +1,6 @@
 # github-user-summary-cards
 
 GitHub ユーザーの統計から SVG のサマリーカードを生成する Zig 製 CLI / GitHub Action。
-[`vn7n24fzkq/github-profile-summary-cards`](https://github.com/vn7n24fzkq/github-profile-summary-cards) のコンセプトを Zig で再実装したものです。
 
 `GITHUB_TOKEN` を環境変数で渡すと、その所有者ユーザーに対してはプライベートリポジトリ／プライベートコントリビューションも集計対象になります。トークン無しでも公開データだけで動きますが、GitHub GraphQL は基本的に認証必須なので実用上はトークン必須です。
 
