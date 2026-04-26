@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="260" viewBox="0 0 480 260" fill="none">
+<defs>
+<linearGradient id="card-bg" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0%" stop-color="#1a1b27" stop-opacity="1"/>
+<stop offset="100%" stop-color="#1a1b27" stop-opacity="0.92"/>
+</linearGradient>
+
+</defs>
+<style>
+.title    { font: 700 18px 'Segoe UI', system-ui, Sans-Serif; fill: #70a5fd; }
+.text     { font: 400 13px 'Segoe UI', system-ui, Sans-Serif; fill: #a9b1d6; }
+.muted    { font: 400 11px 'Segoe UI', system-ui, Sans-Serif; fill: #a9b1d6; opacity: 0.7; }
+.bold     { font: 700 14px 'Segoe UI', system-ui, Sans-Serif; fill: #a9b1d6; }
+.num      { font: 700 15px 'Segoe UI', system-ui, Sans-Serif; fill: #a9b1d6; }
+.huge     { font: 800 30px 'Segoe UI', system-ui, Sans-Serif; }
+.label    { font: 600 10px 'Segoe UI', system-ui, Sans-Serif; fill: #a9b1d6; opacity: 0.7; letter-spacing: 0.6px; }
+.fadein   { animation: fadein 0.6s ease-in both; }
+@keyframes fadein { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+<rect x="0.5" y="0.5" rx="8" ry="8" width="479" height="259" fill="url(#card-bg)" stroke="#414868"/>
+<rect x="20" y="14" width="3" height="22" rx="1.5" fill="#70a5fd"/>
+<text class="title" x="32" y="30">Stats</text>
+<rect x="20.00" y="52.00" width="18.00" height="18.00" rx="4.00" fill="#7aa2f7" opacity="0.18"/>
+<g transform="translate(22.00,54.00) scale(0.5833)" fill="none" stroke="#7aa2f7" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.939 5.955 6.572.955-4.755 4.635 1.123 6.545L12 17l-5.878 3.09 1.123-6.545L2.49 8.91l6.572-.955z"/></g>
+<text class="text" x="48.00" y="64.00">Total Stars Earned</text>
+<text class="num" x="456.00" y="64.00" text-anchor="end">21</text>
+<rect x="20.00" y="74.00" width="18.00" height="18.00" rx="4.00" fill="#bb9af7" opacity="0.18"/>
+<g transform="translate(22.00,76.00) scale(0.5833)" fill="none" stroke="#bb9af7" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="6" r="2.5"/>
+<circle cx="6" cy="18" r="2.5"/>
+<circle cx="18" cy="18" r="2.5"/>
+<path d="M12 8.5v2A3.5 3.5 0 0 1 8.5 14H8a4 4 0 0 0-4 4v-2.5"/>
+<path d="M12 8.5v2A3.5 3.5 0 0 0 15.5 14H16a4 4 0 0 1 4 4v-2.5"/></g>
+<text class="text" x="48.00" y="86.00">Total Forks</text>
+<text class="num" x="456.00" y="86.00" text-anchor="end">0</text>
+<rect x="20.00" y="96.00" width="18.00" height="18.00" rx="4.00" fill="#9ece6a" opacity="0.18"/>
+<g transform="translate(22.00,98.00) scale(0.5833)" fill="none" stroke="#9ece6a" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/>
+<path d="M3 12h6"/>
+<path d="M15 12h6"/></g>
+<text class="text" x="48.00" y="108.00">Total Commits</text>
+<text class="num" x="456.00" y="108.00" text-anchor="end">2.4k</text>
+<rect x="20.00" y="118.00" width="18.00" height="18.00" rx="4.00" fill="#e0af68" opacity="0.18"/>
+<g transform="translate(22.00,120.00) scale(0.5833)" fill="none" stroke="#e0af68" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></g>
+<text class="text" x="48.00" y="130.00">Total Contributions</text>
+<text class="num" x="456.00" y="130.00" text-anchor="end">11k</text>
+<rect x="20.00" y="140.00" width="18.00" height="18.00" rx="4.00" fill="#f7768e" opacity="0.18"/>
+<g transform="translate(22.00,142.00) scale(0.5833)" fill="none" stroke="#f7768e" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="3"/>
+<circle cx="6" cy="18" r="3"/>
+<circle cx="18" cy="18" r="3"/>
+<path d="M6 9v6"/>
+<path d="M13 6h3a2 2 0 0 1 2 2v7"/></g>
+<text class="text" x="48.00" y="152.00">Total PRs</text>
+<text class="num" x="456.00" y="152.00" text-anchor="end">588</text>
+<rect x="20.00" y="162.00" width="18.00" height="18.00" rx="4.00" fill="#7dcfff" opacity="0.18"/>
+<g transform="translate(22.00,164.00) scale(0.5833)" fill="none" stroke="#7dcfff" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/>
+<line x1="12" y1="8" x2="12" y2="12"/>
+<line x1="12" y1="16" x2="12" y2="16"/></g>
+<text class="text" x="48.00" y="174.00">Total Issues</text>
+<text class="num" x="456.00" y="174.00" text-anchor="end">48</text>
+<rect x="20.00" y="184.00" width="18.00" height="18.00" rx="4.00" fill="#ff9e64" opacity="0.18"/>
+<g transform="translate(22.00,186.00) scale(0.5833)" fill="none" stroke="#ff9e64" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></g>
+<text class="text" x="48.00" y="196.00">Repos Owned</text>
+<text class="num" x="456.00" y="196.00" text-anchor="end">65</text>
+<rect x="20.00" y="206.00" width="18.00" height="18.00" rx="4.00" fill="#73daca" opacity="0.18"/>
+<g transform="translate(22.00,208.00) scale(0.5833)" fill="none" stroke="#73daca" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/>
+<polyline points="2 17 12 22 22 17"/>
+<polyline points="2 12 12 17 22 12"/></g>
+<text class="text" x="48.00" y="218.00">Contributed Repos</text>
+<text class="num" x="456.00" y="218.00" text-anchor="end">87</text>
+</svg>

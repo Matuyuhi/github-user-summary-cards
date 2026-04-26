@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="540" height="220" viewBox="0 0 540 220" fill="none">
+<defs>
+<linearGradient id="card-bg" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0%" stop-color="#1a1b27" stop-opacity="1"/>
+<stop offset="100%" stop-color="#1a1b27" stop-opacity="0.92"/>
+</linearGradient>
+
+</defs>
+<style>
+.title    { font: 700 18px 'Segoe UI', system-ui, Sans-Serif; fill: #70a5fd; }
+.text     { font: 400 13px 'Segoe UI', system-ui, Sans-Serif; fill: #a9b1d6; }
+.muted    { font: 400 11px 'Segoe UI', system-ui, Sans-Serif; fill: #a9b1d6; opacity: 0.7; }
+.bold     { font: 700 14px 'Segoe UI', system-ui, Sans-Serif; fill: #a9b1d6; }
+.num      { font: 700 15px 'Segoe UI', system-ui, Sans-Serif; fill: #a9b1d6; }
+.huge     { font: 800 30px 'Segoe UI', system-ui, Sans-Serif; }
+.label    { font: 600 10px 'Segoe UI', system-ui, Sans-Serif; fill: #a9b1d6; opacity: 0.7; letter-spacing: 0.6px; }
+.fadein   { animation: fadein 0.6s ease-in both; }
+@keyframes fadein { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+<rect x="0.5" y="0.5" rx="8" ry="8" width="539" height="219" fill="url(#card-bg)" stroke="#414868"/>
+<rect x="20" y="14" width="3" height="22" rx="1.5" fill="#70a5fd"/>
+<text class="title" x="32" y="30">Contribution Streak</text>
+<g transform="translate(502.00,14.00) scale(0.7500)" fill="none" stroke="#bb9af7" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 0 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></g>
+<rect x="24.00" y="64.00" width="156.00" height="130.00" rx="8.00" fill="#7aa2f7" opacity="0.10"/>
+<rect x="24.00" y="64.00" width="156.00" height="130.00" rx="8" fill="none" stroke="#7aa2f7" stroke-width="1" opacity="0.4"/>
+<g transform="translate(90.00,78.00) scale(1.0000)" fill="none" stroke="#7aa2f7" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 0 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></g>
+<text x="102.00" y="144.00" class="huge" fill="#7aa2f7" text-anchor="middle">5</text>
+<text class="label" x="102.00" y="180.00" text-anchor="middle">Current Streak</text>
+<rect x="192.00" y="64.00" width="156.00" height="130.00" rx="8.00" fill="#9ece6a" opacity="0.10"/>
+<rect x="192.00" y="64.00" width="156.00" height="130.00" rx="8" fill="none" stroke="#9ece6a" stroke-width="1" opacity="0.4"/>
+<g transform="translate(258.00,78.00) scale(1.0000)" fill="none" stroke="#9ece6a" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
+<path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
+<path d="M4 22h16"/>
+<path d="M10 14.66V17c0 .55.47.98.97 1.21C12.04 18.75 13 20.24 13 22"/>
+<path d="M14 14.66V17c0 .55-.47.98-.97 1.21C11.96 18.75 11 20.24 11 22"/>
+<path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></g>
+<text x="270.00" y="144.00" class="huge" fill="#9ece6a" text-anchor="middle">53</text>
+<text class="label" x="270.00" y="180.00" text-anchor="middle">Longest Streak</text>
+<rect x="360.00" y="64.00" width="156.00" height="130.00" rx="8.00" fill="#e0af68" opacity="0.10"/>
+<rect x="360.00" y="64.00" width="156.00" height="130.00" rx="8" fill="none" stroke="#e0af68" stroke-width="1" opacity="0.4"/>
+<g transform="translate(426.00,78.00) scale(1.0000)" fill="none" stroke="#e0af68" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></g>
+<text x="438.00" y="144.00" class="huge" fill="#e0af68" text-anchor="middle">1k</text>
+<text class="label" x="438.00" y="180.00" text-anchor="middle">Active Days</text>
+</svg>

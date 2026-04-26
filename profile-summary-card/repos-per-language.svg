@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="540" height="280" viewBox="0 0 540 280" fill="none">
+<defs>
+<linearGradient id="card-bg" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0%" stop-color="#1a1b27" stop-opacity="1"/>
+<stop offset="100%" stop-color="#1a1b27" stop-opacity="0.92"/>
+</linearGradient>
+
+</defs>
+<style>
+.title    { font: 700 18px 'Segoe UI', system-ui, Sans-Serif; fill: #70a5fd; }
+.text     { font: 400 13px 'Segoe UI', system-ui, Sans-Serif; fill: #a9b1d6; }
+.muted    { font: 400 11px 'Segoe UI', system-ui, Sans-Serif; fill: #a9b1d6; opacity: 0.7; }
+.bold     { font: 700 14px 'Segoe UI', system-ui, Sans-Serif; fill: #a9b1d6; }
+.num      { font: 700 15px 'Segoe UI', system-ui, Sans-Serif; fill: #a9b1d6; }
+.huge     { font: 800 30px 'Segoe UI', system-ui, Sans-Serif; }
+.label    { font: 600 10px 'Segoe UI', system-ui, Sans-Serif; fill: #a9b1d6; opacity: 0.7; letter-spacing: 0.6px; }
+.fadein   { animation: fadein 0.6s ease-in both; }
+@keyframes fadein { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+<rect x="0.5" y="0.5" rx="8" ry="8" width="539" height="279" fill="url(#card-bg)" stroke="#414868"/>
+<rect x="20" y="14" width="3" height="22" rx="1.5" fill="#70a5fd"/>
+<text class="title" x="32" y="30">Repos per Language</text>
+<circle cx="130.00" cy="160.00" r="79.00" fill="#414868"/>
+<path d="M130.00,82.00 A78.00,78.00 0 0 1 202.93,187.66 L176.75,177.73 A50.00,50.00 0 0 0 130.00,110.00 Z" fill="#A97BFF"/>
+<path d="M202.93,187.66 A78.00,78.00 0 0 1 166.25,229.07 L153.24,204.27 A50.00,50.00 0 0 0 176.75,177.73 Z" fill="#178600"/>
+<path d="M166.25,229.07 A78.00,78.00 0 0 1 120.60,237.43 L123.97,209.64 A50.00,50.00 0 0 0 153.24,204.27 Z" fill="#ec915c"/>
+<path d="M120.60,237.43 A78.00,78.00 0 0 1 85.69,224.19 L101.60,201.15 A50.00,50.00 0 0 0 123.97,209.64 Z" fill="#F05138"/>
+<path d="M85.69,224.19 A78.00,78.00 0 0 1 60.93,196.25 L85.73,183.24 A50.00,50.00 0 0 0 101.60,201.15 Z" fill="#f34b7d"/>
+<path d="M60.93,196.25 A78.00,78.00 0 0 1 52.57,169.40 L80.36,166.03 A50.00,50.00 0 0 0 85.73,183.24 Z" fill="#701516"/>
+<path d="M52.57,169.40 A78.00,78.00 0 0 1 130.00,82.00 L130.00,110.00 A50.00,50.00 0 0 0 80.36,166.03 Z" fill="#9aa1a8"/>
+<circle cx="130.00" cy="160.00" r="49.50" fill="#1a1b27"/>
+<text x="130.00" y="164.00" text-anchor="middle" class="huge" fill="#A97BFF">31%</text>
+<text class="muted" x="130.00" y="182.00" text-anchor="middle">Kotlin</text>
+<circle cx="246.00" cy="74.00" r="5.00" fill="#A97BFF"/>
+<text class="text" x="258.00" y="78.00">Kotlin</text>
+<text class="bold" x="516.00" y="78.00" text-anchor="end">30.8%</text>
+<circle cx="246.00" cy="98.00" r="5.00" fill="#178600"/>
+<text class="text" x="258.00" y="102.00">C#</text>
+<text class="bold" x="516.00" y="102.00" text-anchor="end">11.5%</text>
+<circle cx="246.00" cy="122.00" r="5.00" fill="#ec915c"/>
+<text class="text" x="258.00" y="126.00">Zig</text>
+<text class="bold" x="516.00" y="126.00" text-anchor="end">9.6%</text>
+<circle cx="246.00" cy="146.00" r="5.00" fill="#F05138"/>
+<text class="text" x="258.00" y="150.00">Swift</text>
+<text class="bold" x="516.00" y="150.00" text-anchor="end">7.7%</text>
+<circle cx="246.00" cy="170.00" r="5.00" fill="#f34b7d"/>
+<text class="text" x="258.00" y="174.00">C++</text>
+<text class="bold" x="516.00" y="174.00" text-anchor="end">7.7%</text>
+<circle cx="246.00" cy="194.00" r="5.00" fill="#701516"/>
+<text class="text" x="258.00" y="198.00">Ruby</text>
+<text class="bold" x="516.00" y="198.00" text-anchor="end">5.8%</text>
+<circle cx="246.00" cy="218.00" r="5.00" fill="#9aa1a8"/>
+<text class="text" x="258.00" y="222.00">Other</text>
+<text class="bold" x="516.00" y="222.00" text-anchor="end">26.9%</text>
+</svg>

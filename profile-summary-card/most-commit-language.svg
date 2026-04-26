@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="540" height="280" viewBox="0 0 540 280" fill="none">
+<defs>
+<linearGradient id="card-bg" x1="0" y1="0" x2="0" y2="1">
+<stop offset="0%" stop-color="#1a1b27" stop-opacity="1"/>
+<stop offset="100%" stop-color="#1a1b27" stop-opacity="0.92"/>
+</linearGradient>
+
+</defs>
+<style>
+.title    { font: 700 18px 'Segoe UI', system-ui, Sans-Serif; fill: #70a5fd; }
+.text     { font: 400 13px 'Segoe UI', system-ui, Sans-Serif; fill: #a9b1d6; }
+.muted    { font: 400 11px 'Segoe UI', system-ui, Sans-Serif; fill: #a9b1d6; opacity: 0.7; }
+.bold     { font: 700 14px 'Segoe UI', system-ui, Sans-Serif; fill: #a9b1d6; }
+.num      { font: 700 15px 'Segoe UI', system-ui, Sans-Serif; fill: #a9b1d6; }
+.huge     { font: 800 30px 'Segoe UI', system-ui, Sans-Serif; }
+.label    { font: 600 10px 'Segoe UI', system-ui, Sans-Serif; fill: #a9b1d6; opacity: 0.7; letter-spacing: 0.6px; }
+.fadein   { animation: fadein 0.6s ease-in both; }
+@keyframes fadein { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+<rect x="0.5" y="0.5" rx="8" ry="8" width="539" height="279" fill="url(#card-bg)" stroke="#414868"/>
+<rect x="20" y="14" width="3" height="22" rx="1.5" fill="#70a5fd"/>
+<text class="title" x="32" y="30">Most Commit Language</text>
+<circle cx="130.00" cy="160.00" r="79.00" fill="#414868"/>
+<path d="M130.00,82.00 A78.00,78.00 0 0 1 189.13,210.87 L167.91,192.61 A50.00,50.00 0 0 0 130.00,110.00 Z" fill="#3178c6"/>
+<path d="M189.13,210.87 A78.00,78.00 0 0 1 64.28,202.02 L87.87,186.93 A50.00,50.00 0 0 0 167.91,192.61 Z" fill="#178600"/>
+<path d="M64.28,202.02 A78.00,78.00 0 0 1 61.16,123.32 L85.87,136.48 A50.00,50.00 0 0 0 87.87,186.93 Z" fill="#222c37"/>
+<path d="M61.16,123.32 A78.00,78.00 0 0 1 73.38,106.35 L93.71,125.61 A50.00,50.00 0 0 0 85.87,136.48 Z" fill="#f34b7d"/>
+<path d="M73.38,106.35 A78.00,78.00 0 0 1 85.59,95.87 L101.53,118.89 A50.00,50.00 0 0 0 93.71,125.61 Z" fill="#f1e05a"/>
+<path d="M85.59,95.87 A78.00,78.00 0 0 1 96.47,89.57 L108.51,114.86 A50.00,50.00 0 0 0 101.53,118.89 Z" fill="#A97BFF"/>
+<path d="M96.47,89.57 A78.00,78.00 0 0 1 130.00,82.00 L130.00,110.00 A50.00,50.00 0 0 0 108.51,114.86 Z" fill="#9aa1a8"/>
+<circle cx="130.00" cy="160.00" r="49.50" fill="#1a1b27"/>
+<text x="130.00" y="164.00" text-anchor="middle" class="huge" fill="#3178c6">36%</text>
+<text class="muted" x="130.00" y="182.00" text-anchor="middle">TypeScript</text>
+<circle cx="246.00" cy="74.00" r="5.00" fill="#3178c6"/>
+<text class="text" x="258.00" y="78.00">TypeScript</text>
+<text class="bold" x="516.00" y="78.00" text-anchor="end">36.3%</text>
+<circle cx="246.00" cy="98.00" r="5.00" fill="#178600"/>
+<text class="text" x="258.00" y="102.00">C#</text>
+<text class="bold" x="516.00" y="102.00" text-anchor="end">29.6%</text>
+<circle cx="246.00" cy="122.00" r="5.00" fill="#222c37"/>
+<text class="text" x="258.00" y="126.00">ShaderLab</text>
+<text class="bold" x="516.00" y="126.00" text-anchor="end">16.8%</text>
+<circle cx="246.00" cy="146.00" r="5.00" fill="#f34b7d"/>
+<text class="text" x="258.00" y="150.00">C++</text>
+<text class="bold" x="516.00" y="150.00" text-anchor="end">4.3%</text>
+<circle cx="246.00" cy="170.00" r="5.00" fill="#f1e05a"/>
+<text class="text" x="258.00" y="174.00">JavaScript</text>
+<text class="bold" x="516.00" y="174.00" text-anchor="end">3.3%</text>
+<circle cx="246.00" cy="194.00" r="5.00" fill="#A97BFF"/>
+<text class="text" x="258.00" y="198.00">Kotlin</text>
+<text class="bold" x="516.00" y="198.00" text-anchor="end">2.6%</text>
+<circle cx="246.00" cy="218.00" r="5.00" fill="#9aa1a8"/>
+<text class="text" x="258.00" y="222.00">Other</text>
+<text class="bold" x="516.00" y="222.00" text-anchor="end">7.1%</text>
+</svg>
