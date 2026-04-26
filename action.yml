@@ -136,15 +136,25 @@ runs:
           exit 1
         fi
 
-        git config user.name  "$COMMIT_USER_NAME"
-        git config user.email "$COMMIT_USER_EMAIL"
-
-        # Stash output files outside the working tree before mutating it.
+        # Stage SVGs in a temp dir before touching anything git-related.
         staging=$(mktemp -d)
         cp -a "$OUTPUT_DIR"/. "$staging/"
 
-        git checkout --orphan _gusc_push_tmp
-        git rm -rf . > /dev/null 2>&1 || true
+        # Build the orphan commit in an isolated worktree so the main checkout
+        # (which still hosts action.yml, sources, .zig-cache, zig-out etc.) is
+        # never mutated. This avoids two failure modes from the previous
+        # implementation: leaking untracked build artifacts into the commit,
+        # and stripping action.yml from the workspace mid-job.
+        wt=$(mktemp -d)/gusc-wt
+        git worktree add --detach "$wt" HEAD > /dev/null
+        trap 'git worktree remove --force "$wt" 2>/dev/null || true' EXIT
+
+        cd "$wt"
+        git checkout --orphan "$target" > /dev/null 2>&1
+        # Drop everything inherited from the parent commit, both index and tree.
+        git rm -rf --cached . > /dev/null 2>&1 || true
+        find . -mindepth 1 -maxdepth 1 -not -name '.git' -exec rm -rf {} +
+
         cp -a "$staging"/. .
 
         git add -A
@@ -153,7 +163,9 @@ runs:
           exit 0
         fi
 
-        git commit -m "$msg"
-        git branch -M "$target"
+        git \
+          -c user.name="$COMMIT_USER_NAME" \
+          -c user.email="$COMMIT_USER_EMAIL" \
+          commit -m "$msg" > /dev/null
         git push -f origin "$target"
-        echo "pushed $(ls | wc -l | tr -d ' ') files to '$target'"
+        echo "pushed $(git ls-tree HEAD | wc -l | tr -d ' ') files to '$target'"
