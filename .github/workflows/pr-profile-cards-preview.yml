@@ -39,11 +39,29 @@ jobs:
       - name: Build binary
         run: zig build -Doptimize=ReleaseSafe
 
+      - name: Resolve token
+        id: tok
+        env:
+          # GitHub Actions' auto-provided token (works on real GitHub).
+          SECRET_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Prefer GH_PAT (an OS env var, e.g. set in the Claude Code web
+          # environment) so a hand-supplied PAT wins where secrets.GITHUB_TOKEN
+          # isn't a valid api.github.com credential; fall back to the Actions
+          # token on real GitHub where GH_PAT is unset.
+          tok="${GH_PAT:-}"
+          [ -z "$tok" ] && tok="${SECRET_TOKEN:-}"
+          if [ -z "$tok" ]; then
+            echo "::warning::no token resolved (GH_PAT and secrets.GITHUB_TOKEN both empty); requests will be unauthenticated"
+          fi
+          echo "::add-mask::$tok"
+          echo "token=$tok" >> "$GITHUB_OUTPUT"
+
       - name: Generate cards
         uses: ./
         with:
           BIN_PATH: ${{ github.workspace }}/zig-out/bin/github-user-summary-cards
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.tok.outputs.token }}
           THEME: tokyonight
           ALL_TIME: 'true'
           HUMANIZE: 'true'
