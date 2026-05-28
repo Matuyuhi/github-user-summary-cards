@@ -3,13 +3,68 @@ const svg = @import("../svg.zig");
 const icons = @import("../icons.zig");
 const Stats = @import("../stats.zig").Stats;
 
-fn levelColor(theme: svg.Theme, count: u32, max: u32) []const u8 {
-    if (count == 0) return theme.border;
+fn hexNibble(c: u8) u8 {
+    return switch (c) {
+        '0'...'9' => c - '0',
+        'a'...'f' => c - 'a' + 10,
+        'A'...'F' => c - 'A' + 10,
+        else => 0,
+    };
+}
+
+fn hexToRgb(hex: []const u8) [3]u8 {
+    const s = if (hex.len > 0 and hex[0] == '#') hex[1..] else hex;
+    if (s.len < 6) return .{ 0, 0, 0 };
+    return .{
+        hexNibble(s[0]) * 16 + hexNibble(s[1]),
+        hexNibble(s[2]) * 16 + hexNibble(s[3]),
+        hexNibble(s[4]) * 16 + hexNibble(s[5]),
+    };
+}
+
+fn mix(a: u8, b: u8, t: f64) u8 {
+    const af = @as(f64, @floatFromInt(a));
+    const bf = @as(f64, @floatFromInt(b));
+    return @intFromFloat(@round(af + (bf - af) * t));
+}
+
+fn blend(buf: *[8]u8, from: [3]u8, to: [3]u8, t: f64) []const u8 {
+    const r = mix(from[0], to[0], t);
+    const g = mix(from[1], to[1], t);
+    const b = mix(from[2], to[2], t);
+    return std.fmt.bufPrint(buf, "#{x:0>2}{x:0>2}{x:0>2}", .{ r, g, b }) catch "#000000";
+}
+
+/// Maps a day's contribution count to a discrete intensity level 0..4,
+/// where 0 means no activity and 4 is the most active.
+fn levelOf(count: u32, max: u32) u8 {
+    if (count == 0) return 0;
     const ratio = @as(f64, @floatFromInt(count)) / @as(f64, @floatFromInt(@max(max, 1)));
-    if (ratio < 0.25) return theme.palette[5];
-    if (ratio < 0.5) return theme.palette[3];
-    if (ratio < 0.75) return theme.palette[2];
-    return theme.palette[0];
+    if (ratio <= 0.2) return 1;
+    if (ratio <= 0.45) return 2;
+    if (ratio <= 0.7) return 3;
+    return 4;
+}
+
+/// Returns a single-hue shade for the given level: lighter ("Less") shades
+/// blend the theme's base color toward the background, the darkest/brightest
+/// ("More") shade is the base color itself. This keeps the heatmap
+/// monochromatic per theme instead of cycling through unrelated palette hues.
+fn levelColor(buf: *[8]u8, theme: svg.Theme, level: u8) []const u8 {
+    const bg = hexToRgb(theme.bg);
+    // Empty days sit just slightly off the background so the grid stays
+    // subtle (near-black on dark themes) instead of using the lighter border.
+    if (level == 0) return blend(buf, bg, hexToRgb(theme.border), 0.3);
+    const base = hexToRgb(theme.palette[0]);
+    // The most active level is pushed slightly past the base color toward
+    // white so "More" reads a touch brighter than a plain base fill.
+    if (level >= 4) return blend(buf, base, .{ 255, 255, 255 }, 0.15);
+    const t: f64 = switch (level) {
+        1 => 0.4,
+        2 => 0.6,
+        else => 0.8,
+    };
+    return blend(buf, bg, base, t);
 }
 
 const month_short = [_][]const u8{ "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
@@ -78,7 +133,8 @@ pub fn render(w: *svg.Writer, theme: svg.Theme, s: *const Stats) !void {
     for (window, 0..) |day, idx| {
         const x = ox + @as(f64, @floatFromInt(col)) * (cell + gap);
         const y = oy + @as(f64, @floatFromInt(row)) * (cell + gap);
-        try svg.rect(w, x, y, cell, cell, 2, levelColor(theme, day.count, max));
+        var cbuf: [8]u8 = undefined;
+        try svg.rect(w, x, y, cell, cell, 2, levelColor(&cbuf, theme, levelOf(day.count, max)));
 
         if (isFirstOfMonth(day.date)) {
             if (parseMonth(day.date)) |m| {
@@ -98,11 +154,10 @@ pub fn render(w: *svg.Writer, theme: svg.Theme, s: *const Stats) !void {
     const legend_y: f64 = @as(f64, @floatFromInt(height)) - 22;
     try svg.text(w, 36, legend_y, "muted", "Less");
     var lx: f64 = 70;
-    var lvl: u32 = 0;
+    var lvl: u8 = 0;
     while (lvl < 5) : (lvl += 1) {
-        const fake_count: u32 = if (lvl == 0) 0 else lvl;
-        const fake_max: u32 = 4;
-        const c = levelColor(theme, fake_count, fake_max);
+        var cbuf: [8]u8 = undefined;
+        const c = levelColor(&cbuf, theme, lvl);
         try svg.rect(w, lx, legend_y - 10, cell, cell, 2, c);
         lx += cell + gap + 1;
     }
