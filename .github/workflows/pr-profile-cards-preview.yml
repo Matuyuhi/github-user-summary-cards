@@ -66,6 +66,9 @@ jobs:
           ALL_TIME: 'true'
           HUMANIZE: 'true'
           OUTPUT_DIR: ${{ env.OUTPUT_DIR }}
+          EXCLUDE: 'CSS'
+          TOP_LANGS: 7
+          TOP_REPOS: 7
           # AUTO_PUSH omitted: we push to a per-PR branch below and need its SHA.
 
       - name: Push cards to preview branch
