@@ -10,10 +10,9 @@ pub fn render(
     opts: stats.DisplayOpts,
 ) !void {
     const width: u32 = 540;
-    const height: u32 = 280;
-    try svg.header(w, width, height, theme, title);
 
     if (items.len == 0) {
+        try svg.header(w, width, 280, theme, title);
         try svg.text(w, 32, 130, "muted", "(no data)");
         try svg.footer(w);
         return;
@@ -27,6 +26,13 @@ pub fn render(
         for (items[top_n..]) |it| other += it.value;
     }
     if (total <= 0) total = 1;
+
+    // legend: top_n entries + optional "Other"; each row is 24px starting at y=78
+    // bottom margin of 34px matches the default layout (6 langs + Other → height=280)
+    const n_legend: usize = top_n + if (other > 0) @as(usize, 1) else 0;
+    const height: u32 = @max(280, @as(u32, @intCast(n_legend * 24 + 78 + 34)));
+
+    try svg.header(w, width, height, theme, title);
 
     const cx: f64 = 130;
     const cy: f64 = 160;
