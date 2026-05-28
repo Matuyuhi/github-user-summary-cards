@@ -55,13 +55,16 @@ fn levelColor(buf: *[8]u8, theme: svg.Theme, level: u8) []const u8 {
     // Empty days sit just slightly off the background so the grid stays
     // subtle (near-black on dark themes) instead of using the lighter border.
     if (level == 0) return blend(buf, bg, hexToRgb(theme.border), 0.3);
+    const base = hexToRgb(theme.palette[0]);
+    // The most active level is pushed slightly past the base color toward
+    // white so "More" reads a touch brighter than a plain base fill.
+    if (level >= 4) return blend(buf, base, .{ 255, 255, 255 }, 0.15);
     const t: f64 = switch (level) {
         1 => 0.4,
         2 => 0.6,
-        3 => 0.8,
-        else => 1.0,
+        else => 0.8,
     };
-    return blend(buf, bg, hexToRgb(theme.palette[0]), t);
+    return blend(buf, bg, base, t);
 }
 
 const month_short = [_][]const u8{ "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
