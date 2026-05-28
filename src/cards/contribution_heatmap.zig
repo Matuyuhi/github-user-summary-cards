@@ -28,6 +28,13 @@ fn mix(a: u8, b: u8, t: f64) u8 {
     return @intFromFloat(@round(af + (bf - af) * t));
 }
 
+fn blend(buf: *[8]u8, from: [3]u8, to: [3]u8, t: f64) []const u8 {
+    const r = mix(from[0], to[0], t);
+    const g = mix(from[1], to[1], t);
+    const b = mix(from[2], to[2], t);
+    return std.fmt.bufPrint(buf, "#{x:0>2}{x:0>2}{x:0>2}", .{ r, g, b }) catch "#000000";
+}
+
 /// Maps a day's contribution count to a discrete intensity level 0..4,
 /// where 0 means no activity and 4 is the most active.
 fn levelOf(count: u32, max: u32) u8 {
@@ -44,19 +51,17 @@ fn levelOf(count: u32, max: u32) u8 {
 /// ("More") shade is the base color itself. This keeps the heatmap
 /// monochromatic per theme instead of cycling through unrelated palette hues.
 fn levelColor(buf: *[8]u8, theme: svg.Theme, level: u8) []const u8 {
-    if (level == 0) return theme.border;
+    const bg = hexToRgb(theme.bg);
+    // Empty days sit just slightly off the background so the grid stays
+    // subtle (near-black on dark themes) instead of using the lighter border.
+    if (level == 0) return blend(buf, bg, hexToRgb(theme.border), 0.3);
     const t: f64 = switch (level) {
         1 => 0.4,
         2 => 0.6,
         3 => 0.8,
         else => 1.0,
     };
-    const base = hexToRgb(theme.palette[0]);
-    const bg = hexToRgb(theme.bg);
-    const r = mix(bg[0], base[0], t);
-    const g = mix(bg[1], base[1], t);
-    const b = mix(bg[2], base[2], t);
-    return std.fmt.bufPrint(buf, "#{x:0>2}{x:0>2}{x:0>2}", .{ r, g, b }) catch theme.palette[0];
+    return blend(buf, bg, hexToRgb(theme.palette[0]), t);
 }
 
 const month_short = [_][]const u8{ "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
