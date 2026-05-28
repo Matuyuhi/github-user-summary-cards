@@ -33,9 +33,9 @@ fn mix(a: u8, b: u8, t: f64) u8 {
 fn levelOf(count: u32, max: u32) u8 {
     if (count == 0) return 0;
     const ratio = @as(f64, @floatFromInt(count)) / @as(f64, @floatFromInt(@max(max, 1)));
-    if (ratio <= 0.25) return 1;
-    if (ratio <= 0.5) return 2;
-    if (ratio <= 0.75) return 3;
+    if (ratio <= 0.2) return 1;
+    if (ratio <= 0.45) return 2;
+    if (ratio <= 0.7) return 3;
     return 4;
 }
 
@@ -46,9 +46,9 @@ fn levelOf(count: u32, max: u32) u8 {
 fn levelColor(buf: *[8]u8, theme: svg.Theme, level: u8) []const u8 {
     if (level == 0) return theme.border;
     const t: f64 = switch (level) {
-        1 => 0.25,
-        2 => 0.5,
-        3 => 0.75,
+        1 => 0.4,
+        2 => 0.6,
+        3 => 0.8,
         else => 1.0,
     };
     const base = hexToRgb(theme.palette[0]);
