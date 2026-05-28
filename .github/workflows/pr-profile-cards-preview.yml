@@ -43,7 +43,7 @@ jobs:
         id: tok
         env:
           # GitHub Actions' auto-provided token (works on real GitHub).
-          SECRET_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SECRET_TOKEN: ${{ secrets.GH_PAT }}
         run: |
           # Prefer GH_PAT (an OS env var, e.g. set in the Claude Code web
           # environment) so a hand-supplied PAT wins where secrets.GITHUB_TOKEN
