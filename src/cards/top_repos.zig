@@ -42,8 +42,8 @@ pub fn render(w: *svg.Writer, theme: svg.Theme, s: *const Stats) !void {
             try svg.text(w, text_x, y + 41, "muted", desc);
         }
 
-        try svg.circle(w, text_x + 4, y + 53, 4, r.primary_color);
-        try svg.text(w, text_x + 14, y + 56, "muted", r.primary_lang);
+        try svg.circle(w, text_x + 4, y + 50, 4, r.primary_color);
+        try svg.text(w, text_x + 14, y + 53, "muted", r.primary_lang);
 
         const stars_col_x: f64 = @as(f64, @floatFromInt(width)) - 130;
         const forks_col_x: f64 = @as(f64, @floatFromInt(width)) - 60;
