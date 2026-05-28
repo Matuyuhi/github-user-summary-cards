@@ -1,41 +1,41 @@
 # github-user-summary-cards
 
-GitHub ユーザーの統計から SVG のサマリーカードを生成する Zig 製 CLI / GitHub Action。
+A Zig-based CLI / GitHub Action that generates SVG summary cards from GitHub user statistics.
 
-`GITHUB_TOKEN` を環境変数で渡すと、その所有者ユーザーに対してはプライベートリポジトリ／プライベートコントリビューションも集計対象になります。トークン無しでも公開データだけで動きますが、GitHub GraphQL は基本的に認証必須なので実用上はトークン必須です。
+When `GITHUB_TOKEN` is provided as an environment variable, private repositories and private contributions for the token owner are included in the aggregation. Without a token, only public data is used — but since GitHub GraphQL generally requires authentication, a token is practically required.
 
-## 出力されるカード（7 枚）
+## Generated Cards (7 total)
 
-| ファイル名 | 内容 |
+| Filename | Description |
 |---|---|
-| `profile-details.svg`        | 名前 / @login / Bio / Joined date / アバター + 主要 8 指標 |
-| `repos-per-language.svg`     | 所有リポジトリの primaryLanguage 内訳（ドーナツ + 中央に Top 言語 %） |
-| `most-commit-language.svg`   | コミット数で重み付けした言語内訳（ドーナツ） |
-| `stats.svg`                  | スター・フォーク・コミット・PR・Issue・コントリビュート Repo の集計 |
-| `contribution-heatmap.svg`   | 直近 1 年の日別コントリビューションヒートマップ（月ラベル + 5 段階凡例） |
-| `streak.svg`                 | 現在のストリーク / 最長ストリーク / アクティブ日数 |
-| `top-repos.svg`              | スター数 Top N のリポジトリ（言語色 + star/fork 数） |
+| `profile-details.svg`        | Name / @login / Bio / Joined date / Avatar + 8 key metrics |
+| `repos-per-language.svg`     | Breakdown of owned repositories by primaryLanguage (donut chart + top language % in center) |
+| `most-commit-language.svg`   | Language breakdown weighted by commit count (donut chart) |
+| `stats.svg`                  | Aggregated stars, forks, commits, PRs, issues, and contributed repos |
+| `contribution-heatmap.svg`   | Daily contribution heatmap for the past year (month labels + 5-level legend) |
+| `streak.svg`                 | Current streak / longest streak / total active days |
+| `top-repos.svg`              | Top N repositories by star count (with language color + star/fork counts) |
 
-アバターは取得時に base64 エンコードして SVG に埋め込まれるので、README で `<img src="...svg">` 経由で参照しても表示されます。
+Avatars are base64-encoded at fetch time and embedded in the SVG, so they display correctly when referenced via `<img src="...svg">` in a README.
 
-## CLI 使い方
+## CLI Usage
 
-ビルド:
+Build:
 
 ```sh
-zig build -Doptimize=ReleaseSafe   # Zig 0.16.0+ が必要
+zig build -Doptimize=ReleaseSafe   # Requires Zig 0.16.0+
 ```
 
-実行:
+Run:
 
 ```sh
-# 基本（直近 1 年）
+# Basic (past year)
 GITHUB_TOKEN=ghp_xxx ./zig-out/bin/github-user-summary-cards your-login
 
-# all-time（入会から現在までを年単位で集計、commit/contribution/streak が全期間ベース）
+# All-time (aggregates from account creation to now by calendar year; commits/contributions/streak are full-history)
 GITHUB_TOKEN=ghp_xxx ./zig-out/bin/github-user-summary-cards your-login --all-time
 
-# テーマ・カード絞り込み・件数指定・大きい数の省略表記
+# Theme, card filtering, count limits, and humanized numbers
 ./zig-out/bin/github-user-summary-cards your-login \
   --theme tokyonight \
   --cards profile,stats,streak,top-repos \
@@ -44,39 +44,39 @@ GITHUB_TOKEN=ghp_xxx ./zig-out/bin/github-user-summary-cards your-login --all-ti
   --humanize
 ```
 
-### オプション / 環境変数
+### Options / Environment Variables
 
-| CLI フラグ | 環境変数 | 既定値 | 内容 |
+| CLI Flag | Env Var | Default | Description |
 |---|---|---|---|
-| `<username>` (positional) | `GITHUB_USERNAME` | (必須) | 対象ユーザー |
-| —                  | `GITHUB_TOKEN`     | unset | GraphQL 認証用。所有者なら private も含む |
-| `--theme`          | `THEME`            | `default` | カラーテーマ（下記参照） |
-| `--exclude`        | `EXCLUDE`          | `""` | 言語タリーから除外（CSV、例: `HTML,CSS`） |
-| `--all-time`       | `ALL_TIME`         | `false` | 直近 1 年でなく入会から全期間を集計（年数ぶんクエリ実行） |
-| `--cards`          | `CARDS`            | `""` (=all) | 出力するカード名 CSV（短縮名も可: `heatmap`, `repos` 等） |
-| `--top-langs`      | `TOP_LANGS`        | `6` | ドーナツに表示する言語数（1..20） |
-| `--top-repos`      | `TOP_REPOS`        | `6` | top-repos カードの件数（1..20） |
-| `--include-forks`  | `INCLUDE_FORKS`    | `false` | fork した repo もタリー対象に |
-| `--bio-max`        | `BIO_MAX`          | `56` | profile カードの bio 切り詰め文字数（8..400） |
-| `--no-avatar-embed`| `NO_AVATAR_EMBED`  | `false` | アバターを base64 埋め込みしない（軽量化、ただし `<img>` 経由非表示） |
-| `--humanize`       | `HUMANIZE`         | `false` | 数値を `1.2k` `3.4m` 形式で省略表記 |
-| `--output`         | `OUTPUT_DIR`       | `profile-summary-card-output` | 出力ディレクトリ |
+| `<username>` (positional) | `GITHUB_USERNAME` | (required) | Target user |
+| —                  | `GITHUB_TOKEN`     | unset | GraphQL authentication. Includes private data for the token owner |
+| `--theme`          | `THEME`            | `default` | Color theme (see below) |
+| `--exclude`        | `EXCLUDE`          | `""` | Languages to exclude from tally (CSV, e.g. `HTML,CSS`) |
+| `--all-time`       | `ALL_TIME`         | `false` | Aggregate from account creation instead of the past year (runs N queries) |
+| `--cards`          | `CARDS`            | `""` (=all) | CSV of card names to output (short names accepted: `heatmap`, `repos`, etc.) |
+| `--top-langs`      | `TOP_LANGS`        | `6` | Number of languages to show in donut chart (1..20) |
+| `--top-repos`      | `TOP_REPOS`        | `6` | Number of repos in top-repos card (1..20) |
+| `--include-forks`  | `INCLUDE_FORKS`    | `false` | Include forked repos in the tally |
+| `--bio-max`        | `BIO_MAX`          | `56` | Max characters for bio truncation in profile card (8..400) |
+| `--no-avatar-embed`| `NO_AVATAR_EMBED`  | `false` | Skip base64 avatar embedding (lighter output, but won't display via `<img>`) |
+| `--humanize`       | `HUMANIZE`         | `false` | Abbreviate numbers in `1.2k` / `3.4m` format |
+| `--output`         | `OUTPUT_DIR`       | `profile-summary-card-output` | Output directory |
 
-`bool` 系の環境変数は `1` / `true` / `yes` / `on` のいずれかが truthy。
+Boolean environment variables accept `1` / `true` / `yes` / `on` as truthy values.
 
-### テーマ
+### Themes
 
 `default` / `dracula` / `nord_dark` / `tokyonight` / `gruvbox` / `solarized_light`
 
-### `--all-time` の挙動と API コスト
+### `--all-time` Behavior and API Cost
 
-- `contributionsCollection` は GitHub の制約で 1 年が上限のため、入会年から今年まで calendar year 単位で N 回クエリして集計します（合計 N+1 リクエスト）。
-- 認証済み GraphQL レート: 5000 ポイント/時間。各クエリ ≈ 1 ポイントなので 10〜15 年経過していても余裕で収まります。
-- ヒートマップは all-time でも常に直近 1 年のみ描画（横長になりすぎるため）。
+- GitHub limits `contributionsCollection` to a 1-year window, so the tool queries year-by-year from account creation to the current year (N+1 requests total).
+- Authenticated GraphQL rate limit: 5,000 points/hour. Each query costs ≈ 1 point, so even 10–15 years of history fits comfortably.
+- The heatmap always renders only the most recent year, even in all-time mode (to avoid excessive width).
 
-## GitHub Action として使う
+## Using as a GitHub Action
 
-最小例:
+Minimal example:
 
 ```yaml
 # .github/workflows/profile-cards.yml
@@ -103,7 +103,7 @@ jobs:
           # PUSH_BRANCH: profile-summary-card-output  (default)
 ```
 
-`AUTO_PUSH: 'true'` を付けると、生成された SVG が **専用 orphan ブランチ** に force-push されます（履歴は持たず常に最新 1 commit）。これによりリポ本体の `master` を汚さず、README から下記の URL で参照できます:
+With `AUTO_PUSH: 'true'`, the generated SVGs are force-pushed to a **dedicated orphan branch** (no history — always a single latest commit). This keeps your main branch clean while allowing README references via:
 
 ```markdown
 ![](https://raw.githubusercontent.com/<user>/<repo>/profile-summary-card-output/profile-details.svg)
@@ -115,50 +115,50 @@ jobs:
 ![](https://raw.githubusercontent.com/<user>/<repo>/profile-summary-card-output/most-commit-language.svg)
 ```
 
-`AUTO_PUSH` を使わず生成だけ行い、別ステップで好きなように扱うことも可能です（その場合 `permissions: contents: write` 不要）。
+You can also skip `AUTO_PUSH` to only generate the files and handle them in a subsequent step (in which case `permissions: contents: write` is not needed).
 
-### Action inputs（抜粋）
+### Action Inputs (excerpt)
 
-CLI と同名（大文字）です。`AUTO_PUSH` 関連だけ Action 専用:
+Input names match CLI flags (uppercase). Only `AUTO_PUSH`-related inputs are Action-specific:
 
-| input | default | 内容 |
+| Input | Default | Description |
 |---|---|---|
-| `AUTO_PUSH`         | `''`                            | truthy で SVG を `PUSH_BRANCH` に force-push |
-| `PUSH_BRANCH`       | `profile-summary-card-output`   | force-push 先の orphan ブランチ |
-| `COMMIT_MESSAGE`    | (auto)                          | コミットメッセージ |
-| `COMMIT_USER_NAME`  | `github-actions[bot]`           | committer name |
-| `COMMIT_USER_EMAIL` | `41898282+github-actions[bot]@users.noreply.github.com` | committer email |
+| `AUTO_PUSH`         | `''`                            | Force-push SVGs to `PUSH_BRANCH` when truthy |
+| `PUSH_BRANCH`       | `profile-summary-card-output`   | Target orphan branch for force-push |
+| `COMMIT_MESSAGE`    | (auto)                          | Commit message |
+| `COMMIT_USER_NAME`  | `github-actions[bot]`           | Committer name |
+| `COMMIT_USER_EMAIL` | `41898282+github-actions[bot]@users.noreply.github.com` | Committer email |
 
-### プライベートデータも集計したい場合
+### Including Private Data
 
-自動発行される `secrets.GITHUB_TOKEN` は対象 user の private コントリビューション情報を読めません。`read:user` / `repo` スコープ付きの PAT を secret に登録して `GITHUB_TOKEN` input に渡してください:
+The auto-issued `secrets.GITHUB_TOKEN` cannot read private contribution data for the target user. Register a PAT with `read:user` / `repo` scopes as a secret and pass it as the `GITHUB_TOKEN` input:
 
 ```yaml
         with:
           GITHUB_TOKEN: ${{ secrets.PROFILE_PAT }}
 ```
 
-## 開発
+## Development
 
-- 必要環境: **Zig 0.16.0+**
-- 外部依存ゼロ（Zig 標準ライブラリのみ）
-- 実装ファイル:
-  - `src/main.zig` — エントリ。`std.process.Init` を受け、Args / Environ / Io / Allocator を取得
-  - `src/config.zig` — CLI/env パース
-  - `src/github.zig` — GraphQL POST、avatar fetch + base64 化、日付ヘルパー
-  - `src/queries.zig` — GraphQL クエリ（profile + 補助 contributions-only）
-  - `src/stats.zig` — JSON 解析・集計（複数 contribution range のマージ・date 重複排除）
-  - `src/svg.zig` — SVG 共通ヘルパー（header/footer/text/rect/donut/humanizeInt 等）
-  - `src/icons.zig` — Lucide ライク stroke ベースアイコン
-  - `src/themes.zig` — カラーパレット
-  - `src/cards/*.zig` — 各カード描画
+- Required: **Zig 0.16.0+**
+- Zero external dependencies (Zig standard library only)
+- Source files:
+  - `src/main.zig` — Entry point. Receives `std.process.Init`; sets up Args / Environ / Io / Allocator
+  - `src/config.zig` — CLI/env parsing
+  - `src/github.zig` — GraphQL POST, avatar fetch + base64 encoding, date helpers
+  - `src/queries.zig` — GraphQL queries (profile + auxiliary contributions-only)
+  - `src/stats.zig` — JSON parsing and aggregation (merging multiple contribution ranges, deduplicating dates)
+  - `src/svg.zig` — Shared SVG helpers (header/footer/text/rect/donut/humanizeInt, etc.)
+  - `src/icons.zig` — Lucide-style stroke-based icons
+  - `src/themes.zig` — Color palettes
+  - `src/cards/*.zig` — Individual card renderers
 
 ## Notes
 
-- ストリークは取得した contributions 全体から計算します（`--all-time` 指定時は入会以降全期間）。
-- ヒートマップは表示の都合で常に直近 1 年（最大 53 週）に切り出して描画します。
-- `primaryLanguage` が null の repo（README only / 設定リポ等）は repos-per-language / most-commit-language の集計から除外します（top-repos には残ります）。
-- 公開データのみであっても GitHub GraphQL は認証必須のため `GITHUB_TOKEN` は実質必須です。
+- Streak is calculated from all fetched contributions (full history when `--all-time` is set).
+- The heatmap is always clipped to the most recent year (up to 53 weeks) for display reasons.
+- Repos with a null `primaryLanguage` (README-only repos, config repos, etc.) are excluded from repos-per-language and most-commit-language tallies (but still appear in top-repos).
+- GitHub GraphQL requires authentication even for public data, so `GITHUB_TOKEN` is effectively required.
 
 ## License
 
