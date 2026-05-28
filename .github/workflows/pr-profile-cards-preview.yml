@@ -1,0 +1,200 @@
+name: PR Profile Cards Preview
+
+# On every PR, builds the binary from the PR branch, generates the full set of
+# profile summary cards, pushes them to a per-PR orphan branch
+# (pr-preview/<number>), and posts/updates a sticky comment embedding the SVGs.
+# The raw URLs are pinned to the freshly pushed commit SHA so GitHub's image
+# proxy (camo) never serves a stale card from a previous push.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: pr-profile-cards-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  preview:
+    # Skip PRs from forks: their GITHUB_TOKEN is read-only, so it can neither
+    # push the preview branch nor comment.
+    if: >-
+      github.event.action != 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    env:
+      OUTPUT_DIR: pr-preview-cards
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    steps:
+      - uses: actions/checkout@v5.0.1
+
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.16.0
+
+      - name: Build binary
+        run: zig build -Doptimize=ReleaseSafe
+
+      - name: Resolve token
+        id: tok
+        env:
+          # GitHub Actions' auto-provided token (works on real GitHub).
+          SECRET_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          # Prefer GH_PAT (an OS env var, e.g. set in the Claude Code web
+          # environment) so a hand-supplied PAT wins where secrets.GITHUB_TOKEN
+          # isn't a valid api.github.com credential; fall back to the Actions
+          # token on real GitHub where GH_PAT is unset.
+          tok="${GH_PAT:-}"
+          [ -z "$tok" ] && tok="${SECRET_TOKEN:-}"
+          if [ -z "$tok" ]; then
+            echo "::warning::no token resolved (GH_PAT and secrets.GITHUB_TOKEN both empty); requests will be unauthenticated"
+          fi
+          echo "::add-mask::$tok"
+          echo "token=$tok" >> "$GITHUB_OUTPUT"
+
+      - name: Generate cards
+        uses: ./
+        with:
+          BIN_PATH: ${{ github.workspace }}/zig-out/bin/github-user-summary-cards
+          GITHUB_TOKEN: ${{ steps.tok.outputs.token }}
+          THEME: tokyonight
+          ALL_TIME: 'true'
+          HUMANIZE: 'true'
+          OUTPUT_DIR: ${{ env.OUTPUT_DIR }}
+          # AUTO_PUSH omitted: we push to a per-PR branch below and need its SHA.
+
+      - name: Push cards to preview branch
+        id: push
+        run: |
+          set -e
+
+          if [ ! -d "$OUTPUT_DIR" ] || [ -z "$(ls -A "$OUTPUT_DIR" 2>/dev/null)" ]; then
+            echo "::error::no SVGs generated in $OUTPUT_DIR"
+            exit 1
+          fi
+
+          target="pr-preview/${PR_NUMBER}"
+
+          # Stage SVGs before touching git so the orphan worktree can't race them.
+          staging=$(mktemp -d)
+          cp -a "$OUTPUT_DIR"/. "$staging/"
+
+          # Build the orphan commit in an isolated worktree so the main checkout
+          # (sources, zig-out, .zig-cache) is never mutated.
+          wt=$(mktemp -d)/preview-wt
+          git worktree add --detach "$wt" HEAD > /dev/null
+          trap 'git worktree remove --force "$wt" 2>/dev/null || true' EXIT
+
+          cd "$wt"
+          git checkout --orphan "$target" > /dev/null 2>&1
+          git rm -rf --cached . > /dev/null 2>&1 || true
+          find . -mindepth 1 -maxdepth 1 -not -name '.git' -exec rm -rf {} +
+
+          cp -a "$staging"/. .
+
+          git add -A
+          # --allow-empty: always produce a fresh commit (and thus a fresh SHA)
+          # even when the cards are byte-identical to the previous push, so the
+          # comment's SHA-pinned URLs always resolve to this run's output.
+          git \
+            -c user.name="github-actions[bot]" \
+            -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit --allow-empty -m "preview: profile cards for PR #${PR_NUMBER}" > /dev/null
+          git push -f origin "$target"
+
+          sha=$(git rev-parse HEAD)
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "branch=$target" >> "$GITHUB_OUTPUT"
+          echo "pushed $(git ls-tree HEAD | wc -l | tr -d ' ') SVG(s) to '$target' @ $sha"
+
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        env:
+          PREVIEW_SHA: ${{ steps.push.outputs.sha }}
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+
+            const { owner, repo } = context.repo;
+            const prNumber = context.payload.pull_request.number;
+            const sha = process.env.PREVIEW_SHA;
+            const outputDir = process.env.OUTPUT_DIR;
+
+            // Preferred display order; any extra SVGs are appended alphabetically.
+            const order = [
+              'profile-details.svg',
+              'stats.svg',
+              'contribution-heatmap.svg',
+              'streak.svg',
+              'top-repos.svg',
+              'repos-per-language.svg',
+              'most-commit-language.svg',
+            ];
+            const files = fs.readdirSync(outputDir).filter(f => f.endsWith('.svg'));
+            files.sort((a, b) => {
+              const ia = order.indexOf(a), ib = order.indexOf(b);
+              if (ia !== -1 && ib !== -1) return ia - ib;
+              if (ia !== -1) return -1;
+              if (ib !== -1) return 1;
+              return a.localeCompare(b);
+            });
+
+            const rawBase = `https://raw.githubusercontent.com/${owner}/${repo}/${sha}`;
+            const cards = files
+              .map(f => `### \`${f}\`\n\n![${f}](${rawBase}/${f})`)
+              .join('\n\n');
+
+            const marker = '<!-- pr-profile-cards-preview -->';
+            const body = [
+              marker,
+              '## 🖼️ Profile Cards Preview',
+              '',
+              `Generated from this PR branch at \`${context.payload.pull_request.head.sha.slice(0, 7)}\`.`,
+              '',
+              cards,
+              '',
+              '<sub>Pushed to the `' + `pr-preview/${prNumber}` + '` branch; deleted automatically when this PR closes.</sub>',
+            ].join('\n');
+
+            // Sticky comment: update in place if one already exists.
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner, repo, issue_number: prNumber, per_page: 100,
+            });
+            const existing = comments.find(c => c.body && c.body.includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner, repo, comment_id: existing.id, body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner, repo, issue_number: prNumber, body,
+              });
+            }
+
+  cleanup:
+    # When the PR closes, drop its preview branch so they don't pile up.
+    if: >-
+      github.event.action == 'closed' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5.0.1
+      - name: Delete preview branch
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -e
+          target="pr-preview/${PR_NUMBER}"
+          if git ls-remote --exit-code --heads origin "$target" > /dev/null 2>&1; then
+            git push origin --delete "$target"
+            echo "deleted preview branch '$target'"
+          else
+            echo "no preview branch '$target' to delete"
+          fi
