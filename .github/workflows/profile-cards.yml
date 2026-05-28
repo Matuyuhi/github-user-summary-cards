@@ -36,7 +36,7 @@ jobs:
         uses: ./
         with:
           BIN_PATH: ${{ github.workspace }}/zig-out/bin/github-user-summary-cards
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
           THEME: tokyonight
           ALL_TIME: 'true'
           HUMANIZE: 'true'
