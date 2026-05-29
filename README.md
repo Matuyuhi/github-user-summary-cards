@@ -107,13 +107,32 @@ With `AUTO_PUSH: 'true'`, the generated SVGs are force-pushed to a **dedicated o
 
 ```markdown
 ![](https://raw.githubusercontent.com/<user>/<repo>/profile-summary-card-output/profile-details.svg)
+```
+![](/profile-summary-card/profile-details.svg)
+```markdown
 ![](https://raw.githubusercontent.com/<user>/<repo>/profile-summary-card-output/stats.svg)
+```
+![](/profile-summary-card/stats.svg)
+```markdown
 ![](https://raw.githubusercontent.com/<user>/<repo>/profile-summary-card-output/contribution-heatmap.svg)
+```
+![](/profile-summary-card/contribution-heatmap.svg)
+```markdown
 ![](https://raw.githubusercontent.com/<user>/<repo>/profile-summary-card-output/streak.svg)
+```
+![](/profile-summary-card/streak.svg)
+```markdown
 ![](https://raw.githubusercontent.com/<user>/<repo>/profile-summary-card-output/top-repos.svg)
+```
+![](/profile-summary-card/top-repos.svg)
+```markdown
 ![](https://raw.githubusercontent.com/<user>/<repo>/profile-summary-card-output/repos-per-language.svg)
+```
+![](/profile-summary-card/repos-per-language.svg)
+```markdown
 ![](https://raw.githubusercontent.com/<user>/<repo>/profile-summary-card-output/most-commit-language.svg)
 ```
+![](/profile-summary-card/most-commit-language.svg)
 
 You can also skip `AUTO_PUSH` to only generate the files and handle them in a subsequent step (in which case `permissions: contents: write` is not needed).
 
