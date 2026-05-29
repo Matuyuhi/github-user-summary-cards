@@ -54,8 +54,8 @@ jobs:
             exit 0
           fi
 
-          git config user.name  "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name  "matuyuhi"
+          git config user.email "bird9.yuhi@gmail.com"
 
           # Force-add in case the dir is gitignored.
           git add -fA -- "$OUTPUT_DIR"
@@ -66,4 +66,4 @@ jobs:
           fi
 
           git commit -m "chore: regenerate profile summary cards"
-          git push origin HEAD:master
+          git push "https://matuyuhi:${{ secrets.GH_PAT }}@github.com/${{ github.repository }}.git" HEAD:master
