@@ -38,13 +38,13 @@ jobs:
           set -e
           if [ -n "$INPUT_TAG" ]; then
             tag="$INPUT_TAG"
-            git config user.name  "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git config user.name  "matuyuhi"
+            git config user.email "bird9.yuhi@gmail.com"
             if git rev-parse --verify "refs/tags/$tag" > /dev/null 2>&1; then
               echo "tag $tag already exists locally"
             else
               git tag "$tag"
-              git push origin "$tag"
+              git push "https://matuyuhi:${{ secrets.GH_PAT }}@github.com/${{ github.repository }}.git" "$tag"
             fi
           else
             tag="${GITHUB_REF#refs/tags/}"
@@ -93,10 +93,10 @@ jobs:
           MAJOR: ${{ steps.tag.outputs.major }}
         run: |
           set -e
-          git config user.name  "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name  "matuyuhi"
+          git config user.email "bird9.yuhi@gmail.com"
           git tag -f "$MAJOR" "$TAG"
-          git push -f origin "$MAJOR"
+          git push -f "https://matuyuhi:${{ secrets.GH_PAT }}@github.com/${{ github.repository }}.git" "$MAJOR"
 
           if gh release view "$MAJOR" > /dev/null 2>&1; then
             gh release delete "$MAJOR" --yes --cleanup-tag=false
