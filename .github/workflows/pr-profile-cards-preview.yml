@@ -32,7 +32,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5.0.1
 
-      - uses: mlugg/setup-zig@v2
+      - uses: mlugg/setup-zig@v2.2.1
         with:
           version: 0.16.0
 
@@ -116,7 +116,7 @@ jobs:
           echo "pushed $(git ls-tree HEAD | wc -l | tr -d ' ') SVG(s) to '$target' @ $sha"
 
       - name: Comment on PR
-        uses: actions/github-script@v9
+        uses: actions/github-script@v9.0.0
         env:
           PREVIEW_SHA: ${{ steps.push.outputs.sha }}
         with:
